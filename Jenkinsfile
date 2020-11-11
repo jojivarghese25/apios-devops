@@ -5,6 +5,7 @@ pipeline {
 	  
 	    
     }
+	stages {
 	stage('Build image') {
       steps {
         script {
@@ -24,7 +25,7 @@ pipeline {
         echo 'container running'
       }
     }
-    stages {
+    
     	stage('SonarQube Analysis'){
             steps {
                 withSonarQubeEnv('Sonarqube') {
