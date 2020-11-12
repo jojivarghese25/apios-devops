@@ -5,31 +5,11 @@ pipeline {
 	  
 	    
     }
-	stages {
-	stage('Build image') {
-      steps {
-        script {
-          dockerImage= docker.build("joji/apiops-anypoint-jenkins-sapi")
-        }
-
-        echo 'image built'
-      }
-    }
-
-    stage('Run container') {
-      steps {
-        script {
-          bat 'docker run -itd -p 8081:8081 --name apiops-anypoint-jenkins-sapi  joji/apiops-anypoint-jenkins-sapi'
-        }
-
-        echo 'container running'
-      }
-    }
-    
-    	stage('SonarQube Analysis'){
+   stages {
+   	stage('SonarQube Analysis'){
             steps {
                 withSonarQubeEnv('Sonarqube') {
-                    sh "mvn -f apiops-anypoint-jenkins-sapi/pom.xml sonar:sonar -Dsonar.sources=src/ -Dsonar.exclusions=**/*java*/** -Dsonar.test.exclusions=**/*java*/**"
+                    sh "mvn -f apiops-anypoint-jenkins-sapi/pom.xml sonar:sonar -Dsonar.sources=src/"
                     script {
                     timeout(time: 1, unit: 'HOURS') { 
                         sh "curl -u admin:admin -X GET -H 'Accept: application/json' http://localhost:9000/api/qualitygates/project_status?projectKey=com.mycompany:apiops-anypoint-jenkins-sapi > status.json"
@@ -44,7 +24,7 @@ pipeline {
                 }
             }
         }
-	    /*stage('upload to nexus') {
+	  /* stage('upload to nexus') {
       steps {
         script {
           echo "hello";
@@ -60,6 +40,28 @@ pipeline {
             		sh "mvn -f apiops-anypoint-jenkins-sapi/pom.xml clean install -DskipTests"
                   }    
         } 
+       stage('Build image') {
+      steps {
+        script {
+		sh "docker build -t joji/apiops-anypoint-jenkins-sapi ."
+          //dockerImage= sudo docker.build("joji/apiops-anypoint-jenkins-sapi")
+        }
+
+        echo 'image built'
+      }
+    }
+
+    stage('Run container') {
+      steps {
+        script {
+		sh "docker stop apiops-anypoint-jenkins-sapi" 
+          sh "docker rm apiops-anypoint-jenkins-sapi" 
+          sh ' docker run -itd -p 8082:8082 --name apiops-anypoint-jenkins-sapi  joji/apiops-anypoint-jenkins-sapi'
+        }
+
+        echo 'container running'
+      }
+    }
         stage ('Munit Test'){
         	steps {
         		    sh "mvn -f apiops-anypoint-jenkins-sapi/pom.xml test"
@@ -75,15 +77,15 @@ pipeline {
         		    cucumber(failedFeaturesNumber: -1, failedScenariosNumber: -1, failedStepsNumber: -1, fileIncludePattern: 'cucumber.json', jsonReportDirectory: 'cucumber-API-Framework/target', pendingStepsNumber: -1, skippedStepsNumber: -1, sortingMethod: 'ALPHABETICAL', undefinedStepsNumber: -1)
                   }
             }
-        stage('Archetype'){
+        /*stage('Archetype'){
         	steps {
                     sh "mvn -f cucumber-API-Framework/pom.xml archetype:create-from-project"
                     sh "mvn -f cucumber-API-Framework/target/generated-sources/archetype/pom.xml clean install"
                   } 
-        	}    
+        	}  */  
         stage('Deploy to Cloudhub'){
         	steps {
-        	    	sh 'mvn -f cucumber-API-Framework/pom.xml package deploy -DmuleDeploy -Danypoint.username=joji4 -Danypoint.password=Canadavisa25@ -DapplicationName=apiops-anypoint-jenkins-sapi -Dcloudhub.region=us-east-2'
+        	    	sh 'mvn -f apiops-anypoint-jenkins-sapi/pom.xml package deploy -DmuleDeploy -Danypoint.username=joji4 -Danypoint.password=Canadavisa25@ -DapplicationName=apiops-anypoint-jenkins-sapi -Dcloudhub.region=us-east-2'
 			
              	  }
             }
@@ -98,8 +100,17 @@ pipeline {
                   }
 		}
            }    
-    }
+    
+ stage('Kill container') {
+      steps {
+        script {
+          bat 'docker rm -f apiops-anypoint-jenkins-sapi'
+        }
 
+        echo 'container Killed'
+      }
+    }
+   }
     post {
         failure {
 	    script {
