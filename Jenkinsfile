@@ -43,6 +43,8 @@ pipeline {
        stage('Build image') {
       steps {
         script {
+		sh "docker stop apiops-anypoint-jenkins-sapi" 
+          sh "docker rm apiops-anypoint-jenkins-sapi" 
 		sh "docker build -t joji/apiops-anypoint-jenkins-sapi ."
           //dockerImage= sudo docker.build("joji/apiops-anypoint-jenkins-sapi")
         }
@@ -54,8 +56,7 @@ pipeline {
     stage('Run container') {
       steps {
         script {
-		sh "docker stop apiops-anypoint-jenkins-sapi" 
-          sh "docker rm apiops-anypoint-jenkins-sapi" 
+		
           sh ' docker run -itd -p 8082:8082 --name apiops-anypoint-jenkins-sapi  joji/apiops-anypoint-jenkins-sapi'
         }
 
